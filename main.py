@@ -134,7 +134,7 @@ def main():
     app = ctk.CTk()
     app.geometry("1280x720")
     app.title("Sistema Financeiro")
-    app.iconbitmap("projeto_financeiro/assets/icon.ico")
+    app.iconbitmap("assets/icon.ico")
     app.configure(fg_color="#4caf50")  
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("green")
