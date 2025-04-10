@@ -47,6 +47,36 @@ def create_link(parent, text, command):
     label.bind("<Button-1>", lambda e: command())
     return label
 
+def create_input(parent, placeholder, is_cpf=False, is_password=False):
+    entry = ctk.CTkEntry(
+        parent,
+        placeholder_text=placeholder,
+        width=300,
+        height=40,
+        border_width=0,
+        corner_radius=10,
+        fg_color=("#A4E786", "#4CAF50"),
+        text_color=("#FFFFFF", "#0F3B08"),
+        placeholder_text_color=("#FFFFFF", "#0F3B08")
+    )
+    
+    if is_cpf:
+        entry.configure(validate="key")
+        entry.configure(validatecommand=(
+            parent.register(validar_entrada_cpf),
+            '%P'
+        ))
+        entry.bind("<KeyRelease>", formatar_cpf)
+    
+    if is_password:
+        entry.configure(validate="key")
+        entry.configure(validatecommand=(
+            parent.register(validar_entrada_senha),
+            '%P'
+        ))
+        entry.configure(show="•")
+    
+    return entry
 
 # ----------------- Funções de Validação ------------------
 def formatar_cpf(event):
@@ -147,40 +177,6 @@ def register_function(cpf_entry, password_entry):
         messagebox.showerror("Erro", "CPF já cadastrado!")
     except Exception as e:
         messagebox.showerror("Erro", f"Falha no cadastro: {str(e)}")
-
-
-
-# ----------------- Interface Gráfica ------------------
-def create_input(parent, placeholder, is_cpf=False, is_password=False):
-    entry = ctk.CTkEntry(
-        parent,
-        placeholder_text=placeholder,
-        width=300,
-        height=40,
-        border_width=0,
-        corner_radius=10,
-        fg_color=("#A4E786", "#4CAF50"),
-        text_color=("#FFFFFF", "#0F3B08"),
-        placeholder_text_color=("#FFFFFF", "#0F3B08")
-    )
-    
-    if is_cpf:
-        entry.configure(validate="key")
-        entry.configure(validatecommand=(
-            parent.register(validar_entrada_cpf),
-            '%P'
-        ))
-        entry.bind("<KeyRelease>", formatar_cpf)
-    
-    if is_password:
-        entry.configure(validate="key")
-        entry.configure(validatecommand=(
-            parent.register(validar_entrada_senha),
-            '%P'
-        ))
-        entry.configure(show="•")
-    
-    return entry
 
 # ----------------- Telas ------------------
 def login_screen(window):
