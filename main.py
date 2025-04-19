@@ -3,7 +3,10 @@ import mysql.connector
 import bcrypt
 import re
 from tkinter import messagebox
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 def clear_window(window):
     for widget in window.winfo_children():
@@ -243,12 +246,16 @@ def main_screen(window):
 # ----------------- App Principal ------------------
 def main():
     global mydb, cursor
+    servidor = os.getenv("DB_HOST")
+    usuario = os.getenv("DB_USER")
+    senha = os.getenv("DB_PASSWORD")
+    bd = os.getenv("DB_NAME")
     try:
         mydb = mysql.connector.connect(
-            host="127.0.0.1",
-            user="root",
-            password="rootroot",
-            database="projeto_financeiro"
+            host=servidor,
+            user=usuario,
+            passwd=senha,
+            database=bd
         )
         cursor = mydb.cursor()
     except mysql.connector.Error as err:
