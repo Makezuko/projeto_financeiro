@@ -6,12 +6,7 @@ from tkinter import messagebox
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
-
-def clear_window(window):
-    for widget in window.winfo_children():
-        widget.destroy()
-
+# ====================== FUNÇÕES UTILITÁRIAS ======================
 def create_container(parent):
     return ctk.CTkFrame(
         parent,
@@ -50,7 +45,7 @@ def create_link(parent, text, command):
     label.bind("<Button-1>", lambda e: command())
     return label
 
-def create_input(parent, placeholder, is_cpf=False, is_password=False):
+def create_input(parent, placeholder: str, is_cpf=False, is_password=False):
     entry = ctk.CTkEntry(
         parent,
         placeholder_text=placeholder,
@@ -62,15 +57,16 @@ def create_input(parent, placeholder, is_cpf=False, is_password=False):
         text_color=("#FFFFFF", "#0F3B08"),
         placeholder_text_color=("#FFFFFF", "#0F3B08")
     )
-    
+
     if is_cpf:
         entry.configure(validate="key")
         entry.configure(validatecommand=(
             parent.register(validar_entrada_cpf),
             '%P'
         ))
+        entry.bind("<FocusIn>", lambda e: entry.delete(0, "end"))
         entry.bind("<KeyRelease>", formatar_cpf)
-    
+
     if is_password:
         entry.configure(validate="key")
         entry.configure(validatecommand=(
@@ -78,22 +74,23 @@ def create_input(parent, placeholder, is_cpf=False, is_password=False):
             '%P'
         ))
         entry.configure(show="•")
-    
+
     return entry
 
-# ----------------- Funções de Validação ------------------
+# ====================== VALIDAÇÃO E SEGURANÇA ======================
 def formatar_cpf(event):
     widget = event.widget
-    texto = widget.get().replace(".", "").replace("-", "")[:11]
-    novo_texto = ""
+    texto = ''.join(filter(str.isdigit, widget.get()))[:11]
+    novo_texto = []
     
     for i, char in enumerate(texto):
-        if i in [3, 6]:
-            novo_texto += "."
+        if i in (3, 6):
+            novo_texto.append('.')
         if i == 9:
-            novo_texto += "-"
-        novo_texto += char
+            novo_texto.append('-')
+        novo_texto.append(char)
     
+    novo_texto = ''.join(novo_texto)
     widget.delete(0, "end")
     widget.insert(0, novo_texto)
     return True
@@ -115,14 +112,11 @@ def validar_cpf(cpf):
     return cpf[-2:] == f"{digito1}{digito2}"
 
 def validar_entrada_cpf(texto):
-    if len(texto.replace(".", "").replace("-", "")) > 11:
-        return False
-    return re.match(r'^[\d\.\-]*$', texto) is not None
+    return len(texto.replace(".", "").replace("-", "")) <= 11 and re.match(r'^[\d\.\-]*$', texto)
 
 def validar_entrada_senha(texto):
     return len(texto) <= 16
 
-# ----------------- Funções de Segurança ------------------
 def hash_senha(senha):
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(senha.encode('utf-8'), salt).decode('utf-8')
@@ -130,147 +124,189 @@ def hash_senha(senha):
 def verificar_senha(senha, hash_armazenado):
     return bcrypt.checkpw(senha.encode('utf-8'), hash_armazenado.encode('utf-8'))
 
-# ----------------- Funções de Banco de Dados ------------------
-def login_function(cpf_entry, password_entry, window):  
-    cpf_formatado = cpf_entry.get()
-    cpf_numeros = re.sub(r'[^0-9]', '', cpf_formatado)
-    senha = password_entry.get()
+# ====================== HANDLERS DO SISTEMA ======================
+class DatabaseHandler:
+    def __init__(self):
+        self._load_credentials()
+        self.connect()
+    
+    def _load_credentials(self):
+        load_dotenv()
+        self.config = {
+            "host": os.getenv("DB_HOST"),
+            "user": os.getenv("DB_USER"),
+            "password": os.getenv("DB_PASSWORD"),
+            "database": os.getenv("DB_NAME")
+        }
+    
+    def connect(self):
+        try:
+            self.mydb = mysql.connector.connect(**self.config)
+            self.cursor = self.mydb.cursor()
+        except mysql.connector.Error as err:
+            messagebox.showerror("Erro", f"Falha na conexão: {err}")
+            raise
 
-    if not validar_cpf(cpf_numeros):
-        messagebox.showerror("Erro", "CPF inválido!")
-        return
-
-    try:
-        cursor.execute(
+    def get_user(self, cpf):
+        self.cursor.execute(
             "SELECT hash_senha FROM projeto_financeiro.usuario WHERE cpf = %s",
-            (cpf_numeros,)
+            (cpf,)
         )
-        resultado = cursor.fetchone()
-
-        if resultado and verificar_senha(senha, resultado[0]):
-            messagebox.showinfo("Sucesso", "Login realizado com sucesso!")
-            main_screen(window)  
-        else:
-            messagebox.showerror("Erro", "CPF ou senha incorretos!")
-    except Exception as e:
-        messagebox.showerror("Erro", f"Falha no login: {str(e)}")
-
-def register_function(cpf_entry, password_entry):
-    cpf_formatado = cpf_entry.get()
-    cpf_numeros = re.sub(r'[^0-9]', '', cpf_formatado)
-    senha = password_entry.get()
-
-    if not validar_cpf(cpf_numeros):
-        messagebox.showerror("Erro", "CPF inválido!")
-        return
-
-    if len(senha) < 8:
-        messagebox.showerror("Erro", "A senha deve ter no mínimo 8 caracteres!")
-        return
-
-    try:
-        hash_senha_db = hash_senha(senha)
-        cursor.execute(
-            "INSERT INTO projeto_financeiro.usuario (cpf, hash_senha) VALUES (%s, %s)",
-            (cpf_numeros, hash_senha_db)
-        )
-        mydb.commit()
-        messagebox.showinfo("Sucesso", "Cadastro realizado com sucesso!")
-    except mysql.connector.IntegrityError:
-        messagebox.showerror("Erro", "CPF já cadastrado!")
-    except Exception as e:
-        messagebox.showerror("Erro", f"Falha no cadastro: {str(e)}")
-
-# ----------------- Telas ------------------
-def login_screen(window):
-    clear_window(window)
-    main_container = create_container(window)
-    main_container.place(relx=0.5, rely=0.5, anchor="center")
-
-    title = create_title(main_container, "Login")
-    cpf_input = create_input(main_container, "CPF", is_cpf=True)
-    password_input = create_input(main_container, "Senha", is_password=True)
-
-    login_btn = create_button(main_container, "Entrar", 
-                            lambda: login_function(cpf_input, password_input, window))
-    register_link = create_link(main_container, "Criar conta", 
-                              lambda: register_screen(window))
-
-    for row, widget in enumerate([title, cpf_input, password_input, login_btn, register_link]):
-        widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
-
-def register_screen(window):
-    clear_window(window)
-    main_container = create_container(window)
-    main_container.place(relx=0.5, rely=0.5, anchor="center")
-
-    title = create_title(main_container, "Cadastro")
-    cpf_input = create_input(main_container, "CPF", is_cpf=True)
-    password_input = create_input(main_container, "Senha", is_password=True)
-
-    register_btn = create_button(main_container, "Cadastrar",
-                               lambda: register_function(cpf_input, password_input))
-    login_link = create_link(main_container, "Voltar ao login",
-                           lambda: login_screen(window))
-
-    for row, widget in enumerate([title, cpf_input, password_input, register_btn, login_link]):
-        widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
-
-def main_screen(window):
-    clear_window(window)
+        return self.cursor.fetchone()
     
-    main_container = ctk.CTkFrame(
-        window,
-        fg_color=("#F0FFF4", "#327F16")
-    )
-    main_container.pack(fill="both", expand=True, padx=20, pady=20)
+    def create_user(self, cpf, hash_senha):
+        try:
+            self.cursor.execute(
+                "INSERT INTO projeto_financeiro.usuario (cpf, hash_senha) VALUES (%s, %s)",
+                (cpf, hash_senha)
+            )
+            self.mydb.commit()
+        except mysql.connector.IntegrityError:
+            raise ValueError("CPF já cadastrado")
+
+class AuthService:
+    def __init__(self, db_handler):
+        self.db = db_handler
     
-    title = ctk.CTkLabel(
-        main_container,
-        text="Dashboard",
-        font=("Trebuchet MS", 28, "bold"),
-        text_color=("#1F1F1F", "#A4E786")
-    )
-    title.pack(pady=20, anchor="n")
+    def login(self, cpf, senha):
+        if not validar_cpf(cpf):
+            raise ValueError("CPF inválido")
+        
+        user = self.db.get_user(cpf)
+        if not user or not verificar_senha(senha, user[0]):
+            raise ValueError("Credenciais inválidas")
+        return True
+    
+    def register(self, cpf, senha):
+        if not validar_cpf(cpf):
+            raise ValueError("CPF inválido")
+        
+        if len(senha) < 8:
+            raise ValueError("Senha deve ter 8+ caracteres")
+        
+        try:
+            hash_senha_db = hash_senha(senha)
+            self.db.create_user(cpf, hash_senha_db)
+        except ValueError as e:
+            raise
 
-    logout_link = ctk.CTkLabel(
-        main_container,
-        text="Sair",
-        cursor="hand2",
-        text_color=("#1E88E5", "#A4E786"),
-        font=("Arial", 12)
-    )
-    logout_link.bind("<Button-1>", lambda e: login_screen(window))
-    logout_link.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)      
+class BaseScreen(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self._create_ui()
 
-# ----------------- App Principal ------------------
-def main():
-    global mydb, cursor
-    servidor = os.getenv("DB_HOST")
-    usuario = os.getenv("DB_USER")
-    senha = os.getenv("DB_PASSWORD")
-    bd = os.getenv("DB_NAME")
-    try:
-        mydb = mysql.connector.connect(
-            host=servidor,
-            user=usuario,
-            passwd=senha,
-            database=bd
+    def _create_ui(self):
+        self.container = create_container(self)
+        self.container.place(relx=0.5, rely=0.5, anchor="center")
+
+    def clear(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
+# ====================== TELAS ESPECIALIZADAS ======================
+class LoginScreen(BaseScreen):
+    def _create_ui(self):
+        super()._create_ui()
+        
+        title = create_title(self.container, "Login")
+        self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
+        self.password_input = create_input(self.container, "Senha", is_password=True)
+        
+        login_btn = create_button(self.container, "Entrar", self._on_login)
+        register_link = create_link(self.container, "Criar conta", lambda: self.controller.show_screen("register"))
+
+        for row, widget in enumerate([title, self.cpf_input, self.password_input, login_btn, register_link]):
+            widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
+
+    def _on_login(self):
+        try:
+            cpf = re.sub(r'[^0-9]', '', self.cpf_input.get())
+            senha = self.password_input.get()
+            self.controller.auth.login(cpf, senha)
+            self.controller.show_screen("main")
+        except ValueError as e:
+            messagebox.showerror("Erro", str(e))
+
+class RegisterScreen(BaseScreen):
+    def _create_ui(self):
+        super()._create_ui()
+        
+        title = create_title(self.container, "Cadastro")
+        self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
+        self.password_input = create_input(self.container, "Senha", is_password=True)
+        
+        register_btn = create_button(self.container, "Cadastrar", self._on_register)
+        login_link = create_link(self.container, "Voltar ao login", lambda: self.controller.show_screen("login"))
+
+        for row, widget in enumerate([title, self.cpf_input, self.password_input, register_btn, login_link]):
+            widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
+
+    def _on_register(self):
+        try:
+            cpf = re.sub(r'[^0-9]', '', self.cpf_input.get())
+            senha = self.password_input.get()
+            self.controller.auth.register(cpf, senha)
+            messagebox.showinfo("Sucesso", "Cadastro realizado com sucesso!")
+            self.controller.show_screen("login")
+        except ValueError as e:
+            messagebox.showerror("Erro", str(e))
+
+class MainScreen(BaseScreen):
+    def _create_ui(self):
+        self.container = ctk.CTkFrame(
+            self,
+            fg_color=("#00FF00", "#327F16")
         )
-        cursor = mydb.cursor()
-    except mysql.connector.Error as err:
-        messagebox.showerror("Erro", f"Não foi possível conectar ao banco de dados: {err}")
-        return
+        self.container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        title = ctk.CTkLabel(
+            self.container,
+            text="Dashboard",
+            font=("Trebuchet MS", 28, "bold"),
+            text_color=("#1F1F1F", "#A4E786")
+        )
+        title.pack(pady=20, anchor="n")
 
-    app = ctk.CTk()
-    app.geometry("1280x720")
-    app.title("Sistema Financeiro")
-    ctk.set_appearance_mode("System")
-    ctk.set_default_color_theme("green")  
-    app.configure(fg_color="#4caf50")
-    app.iconbitmap("assets/icon.ico")
-    login_screen(app)
-    app.mainloop()
+        logout_link = ctk.CTkLabel(
+            self.container,
+            text="Sair",
+            cursor="hand2",
+            text_color=("#1E88E5", "#A4E786"),
+            font=("Arial", 12)
+        )
+        logout_link.bind("<Button-1>", lambda e: self.controller.show_screen("login"))
+        logout_link.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+
+# ====================== APLICAÇÃO PRINCIPAL ======================
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Sistema Financeiro")
+        self.geometry("1280x720")
+        self.iconbitmap("assets/icon.ico")
+        self._set_appearance_mode("dark")
+
+
+        self.db = DatabaseHandler()
+        self.auth = AuthService(self.db)
+        
+        self.container = ctk.CTkFrame(self)
+        self.container.pack(fill="both", expand=True)
+        
+        self.screens = {
+            "login": LoginScreen(self.container, self),
+            "register": RegisterScreen(self.container, self),
+            "main": MainScreen(self.container, self)
+        }
+        
+        self.show_screen("login")
+
+    def show_screen(self, name):
+        for screen in self.screens.values():
+            screen.pack_forget()
+        self.screens[name].pack(fill="both", expand=True)
 
 if __name__ == "__main__":
-    main()
+    app = App()
+    app.mainloop()
