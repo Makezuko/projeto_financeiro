@@ -64,3 +64,7 @@ def create_input(parent, placeholder: str, is_cpf=False, is_password=False):
         entry.configure(show="•")
 
     return entry
+
+def clear_window(widget):
+    for child in widget.winfo_children():
+        child.destroy()

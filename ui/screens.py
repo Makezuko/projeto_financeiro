@@ -1,22 +1,27 @@
 import customtkinter as ctk
 import re
 from tkinter import messagebox
-from ui.widgets import create_container, create_title, create_button, create_link, create_input
+from ui.widgets import create_container, create_title, create_button, create_link, create_input, clear_window
 
 class BaseScreen(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        self._create_ui()
+        self.container = None    
 
     def _create_ui(self):
+        if self.container is not None:
+            self.container.destroy()
+
+        self.configure(fg_color="#42a603")
         self.container = create_container(self)
         self.container.place(relx=0.5, rely=0.5, anchor="center")
+
+
 
 class LoginScreen(BaseScreen):
     def _create_ui(self):
         super()._create_ui()
-
         title = create_title(self.container, "Login")
         self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
         self.password_input = create_input(self.container, "Senha", is_password=True)
@@ -39,7 +44,6 @@ class LoginScreen(BaseScreen):
 class RegisterScreen(BaseScreen):
     def _create_ui(self):
         super()._create_ui()
-
         title = create_title(self.container, "Cadastro")
         self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
         self.password_input = create_input(self.container, "Senha", is_password=True)

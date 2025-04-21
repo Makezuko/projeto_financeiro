@@ -28,7 +28,10 @@ class App(ctk.CTk):
     def show_screen(self, name):
         for screen in self.screens.values():
             screen.pack_forget()
-        self.screens[name].pack(fill="both", expand=True)
+
+        screen = self.screens[name]
+        screen._create_ui()
+        screen.pack(fill="both", expand=True)    
 
 
 if __name__ == "__main__":
