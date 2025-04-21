@@ -33,7 +33,8 @@ class LoginScreen(BaseScreen):
             widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
 
         self.debug_link = create_link(self, "Debug", self._debug)
-        self.debug_link.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
+        self.debug_link.place(relx=0.02, rely=0.025, anchor="nw", x=-10, y=-10)
+
 
     def _on_login(self):
         try:
