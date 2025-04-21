@@ -32,6 +32,9 @@ class LoginScreen(BaseScreen):
         for row, widget in enumerate([title, self.cpf_input, self.password_input, login_btn, register_link]):
             widget.grid(row=row, column=0, pady=10, padx=20, sticky="ew")
 
+        self.debug_link = create_link(self, "Debug", self._debug)
+        self.debug_link.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
+
     def _on_login(self):
         try:
             cpf = re.sub(r'[^0-9]', '', self.cpf_input.get())
@@ -40,6 +43,9 @@ class LoginScreen(BaseScreen):
             self.controller.show_screen("main")
         except ValueError as e:
             messagebox.showerror("Erro", str(e))
+
+    def _debug(self):
+        self.controller.show_screen("main")
 
 class RegisterScreen(BaseScreen):
     def _create_ui(self):
