@@ -66,6 +66,7 @@ class RegisterScreen(BaseScreen):
 
 class MainScreen(BaseScreen):
     def _create_ui(self):
+        super()._create_ui()
         self.container = ctk.CTkFrame(
             self,
             fg_color=("#00FF00", "#327F16")
