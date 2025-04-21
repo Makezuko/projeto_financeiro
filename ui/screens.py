@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import re
 from tkinter import messagebox
-from ui.widgets import create_container, create_title, create_button, create_link, create_input, clear_window
+from ui.widgets import create_button, create_link, create_input, clear_window
 
 class BaseScreen(ctk.CTkFrame):
     def __init__(self, parent, controller):
@@ -14,7 +14,11 @@ class BaseScreen(ctk.CTkFrame):
             self.container.destroy()
 
         self.configure(fg_color="#42a603")
-        self.container = create_container(self)
+        self.container = ctk.CTkFrame(
+            self,
+            fg_color=("#F0FFF4", "#327F16"),
+            corner_radius=15
+            )   
         self.container.place(relx=0.5, rely=0.5, anchor="center")
 
 
@@ -22,7 +26,12 @@ class BaseScreen(ctk.CTkFrame):
 class LoginScreen(BaseScreen):
     def _create_ui(self):
         super()._create_ui()
-        title = create_title(self.container, "Login")
+        title = ctk.CTkLabel(
+            self.container,
+            text="Login",
+            font=("Trebuchet MS", 24),
+            text_color=("#1F1F1F", "#A4E786")
+            )
         self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
         self.password_input = create_input(self.container, "Senha", is_password=True)
 
@@ -51,7 +60,12 @@ class LoginScreen(BaseScreen):
 class RegisterScreen(BaseScreen):
     def _create_ui(self):
         super()._create_ui()
-        title = create_title(self.container, "Cadastro")
+        title = ctk.CTkLabel(
+            self.container,
+            text="Cadastro",
+            font=("Trebuchet MS", 24),
+            text_color=("#1F1F1F", "#A4E786")
+            )
         self.cpf_input = create_input(self.container, "CPF", is_cpf=True)
         self.password_input = create_input(self.container, "Senha", is_password=True)
 
@@ -87,6 +101,16 @@ class MainScreen(BaseScreen):
             text_color=("#1F1F1F", "#A4E786")
         )
         title.pack(pady=20, anchor="n")
+
+        self.frame = ctk.CTkFrame(
+            self.container,
+            fg_color=("transparent"),
+            border_color=("#000000"),
+            border_width=1.45,
+            corner_radius=15
+        )
+        self.frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.frame.place(relx=0.5, rely=0.5, anchor="center")
 
         logout_link = ctk.CTkLabel(
             self.container,

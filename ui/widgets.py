@@ -1,21 +1,6 @@
 import customtkinter as ctk
 from core.validators import validar_entrada_cpf, validar_entrada_senha, formatar_cpf
 
-def create_container(parent):
-    return ctk.CTkFrame(
-        parent,
-        fg_color=("#F0FFF4", "#327F16"),
-        corner_radius=15
-    )
-
-def create_title(parent, text):
-    return ctk.CTkLabel(
-        parent,
-        text=text,
-        font=("Trebuchet MS", 24),
-        text_color=("#1F1F1F", "#A4E786")
-    )
-
 def create_button(parent, text, command):
     return ctk.CTkButton(
         parent,
